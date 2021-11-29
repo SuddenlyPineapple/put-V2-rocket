@@ -2,7 +2,10 @@
   <v-navigation-drawer v-model="drawer" app temporary color="primary">
     <v-container>
       <v-flex xs12 class="text-xs-center my-4">
-        <v-img src="/logo-web-navbar-no-background.png" alt="logo" />🚀
+        <h1 class="white--text">
+          <span class="accent--text">PUT</span>
+          <span class="font-weight-light">ROCKET</span>
+        </h1>
       </v-flex>
     </v-container>
 

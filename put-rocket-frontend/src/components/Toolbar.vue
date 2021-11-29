@@ -4,14 +4,9 @@
       class="hidden-md-and-up white--text"
       @click="toggleDrawer"
     />
-    <v-toolbar-title>
-      <v-img
-        src="/logo-web-navbar-no-background.png"
-        alt="logo"
-        contain
-        height="50px"
-        :width="$vuetify.breakpoint.mdAndUp ? '200px' : '90%'"
-      />
+    <v-toolbar-title class="headline text-uppercase">
+      <span class="accent--text">PUT</span>
+      <span class="font-weight-light white--text">ROCKET</span>
     </v-toolbar-title>
     <v-spacer></v-spacer>
     <v-toolbar-items class="hidden-sm-and-down">
