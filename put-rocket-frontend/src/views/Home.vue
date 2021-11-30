@@ -1,15 +1,15 @@
 <template>
-  <hello-world />
+  <pairing-button />
 </template>
 
 <script>
-import HelloWorld from "../components/HelloWorld";
+import PairingButton from "../components/PairingButton";
 
 export default {
   name: "Home",
 
   components: {
-    HelloWorld,
+    PairingButton,
   },
 };
 </script>
