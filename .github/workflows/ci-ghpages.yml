@@ -11,6 +11,7 @@ jobs:
         with:
           node-version: '14.14'
           cache: 'npm'
+          cache-dependency-path: put-rocket-frontend/package-lock.json
       - run: cd put-rocket-frontend && npm install
       - run: cd put-rocket-frontend && npm build
 
