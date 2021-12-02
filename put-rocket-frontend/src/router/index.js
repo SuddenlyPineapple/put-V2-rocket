@@ -23,6 +23,7 @@ const routes = [
 
 const router = new VueRouter({
   routes,
+  base: process.env.NODE_ENV === "production" ? "/put-V2-rocket/" : "/",
 });
 
 export default router;
