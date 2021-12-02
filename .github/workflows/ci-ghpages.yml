@@ -5,7 +5,9 @@ jobs:
     runs-on: ubuntu-latest
     name: Build Vue
     steps:
-      - run: cd put-rocket-frontend
+      - run: pwd
+      - run: ls -lai
+#      - run: cd put-rocket-frontend
 
       - uses: actions/checkout@v2
       - id: Build-Vue
