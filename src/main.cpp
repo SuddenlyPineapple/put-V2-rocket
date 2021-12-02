@@ -4,6 +4,7 @@
 #include <BLEServer.h>
 #include <MPU9250_asukiaaa.h>
 #include <Adafruit_BMP280.h>
+#include <SPI.h>
 //
 // TODO ADDING CHECKING BATTERY STATUS
 // https://www.pangodream.es/esp32-getting-battery-charging-level
@@ -11,6 +12,9 @@
 // I2C DEFINE
 #define SDA_PIN 23
 #define SCL_PIN 19
+// SPI DEFINE
+#define MISO_PIN 27
+#define MOSI_PIN 25
 
 //BLE DEFINE
 #define serviceID BLEUUID("4fafc201-1fb5-459e-8fcc-c5c9c331914b")
@@ -28,6 +32,8 @@ float aX, aY, aZ, aSqrt, gX, gY, gZ, mDirection, mX, mY, mZ, temp, press, latt;
 //I2C device found at address 0x76 - bmp280
 Adafruit_BMP280 bmp;
 
+//Build-in Hall sensor
+//int hall = 0;
 
 class ServerCallbacks : public BLEServerCallbacks {
     void onConnect(BLEServer *MyServer) {
@@ -45,11 +51,14 @@ void setup() {
     digitalWrite(22, LOW);
 
     //Serial RUN for TESTING
-//    Serial.begin(115200);
+    Serial.begin(115200);
 
     //I2C RUN
     Wire.begin(SDA_PIN, SCL_PIN);
     mySensor.setWire(&Wire);
+
+    //SPI RUN
+    SPI.begin(18, MISO_PIN, MOSI_PIN, 34);
 
     // MPU9250_asukiaaa RUN
     mySensor.beginAccel();
@@ -117,6 +126,9 @@ void loop() {
     } else {
 //        Serial.println("Cannot read BMP280 values");
     }
+//    Take data form Hall chip sensor
+//    hall = hallRead();
+//    Serial.println(hall);
 
     //SENDING DATA VIA BLE
     if (deviceConnected) {
