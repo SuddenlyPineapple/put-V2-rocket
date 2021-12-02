@@ -21,6 +21,7 @@
 BLECharacteristic customCharacteristic(
         BLEUUID("beb5483e-36e1-4688-b7f5-ea07361b26a8"),
         BLECharacteristic::PROPERTY_READ |
+        BLECharacteristic::PROPERTY_WRITE |
         BLECharacteristic::PROPERTY_NOTIFY
 );
 bool deviceConnected = false;
@@ -34,7 +35,9 @@ Adafruit_BMP280 bmp;
 
 //Build-in Hall sensor
 //int hall = 0;
+char value[1024] = "Default";
 
+//Sending Data
 class ServerCallbacks : public BLEServerCallbacks {
     void onConnect(BLEServer *MyServer) {
         deviceConnected = true;
@@ -42,6 +45,25 @@ class ServerCallbacks : public BLEServerCallbacks {
 
     void onDisconnect(BLEServer *MyServer) {
         deviceConnected = false;
+    }
+};
+
+//Receiving data
+class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
+    void onWrite(BLECharacteristic *customCharacteristic) {
+        std::string rcvString = customCharacteristic->getValue();
+        if (rcvString.length() > 0) {
+            for (int i = 0; i < rcvString.length(); ++i) {
+                Serial.print(rcvString[i]);
+                value[i] = rcvString[i];
+            }
+            for (int i = rcvString.length(); i < 50; ++i) {
+                value[i] = 0;
+            }
+            customCharacteristic->setValue((char *) &value);
+        } else {
+            Serial.println("Empty Value Received!");
+        }
     }
 };
 
@@ -75,16 +97,14 @@ void setup() {
     // BLE CONFIGURATION
     /* Create the BLE Server */
     BLEDevice::init("ROCKET PUT"); // BLE DEV NAME
-    BLEServer *MyServer = BLEDevice::createServer();
-    MyServer->setCallbacks(new ServerCallbacks());  // Set the function that handles Server Callbacks
-    BLEService *customService = MyServer->createService(BLEUUID((uint16_t) 0x1700)); //  A random ID has been selected
-    customService->addCharacteristic(&customCharacteristic);  //customCharacteristic was defined above
-    BLEDescriptor VariableDescriptor(BLEUUID((uint16_t) 0x2901));
-    VariableDescriptor.setValue("DANE");
-    customCharacteristic.addDescriptor(&VariableDescriptor);
-    MyServer->getAdvertising()->addServiceUUID(serviceID);
-    customService->start();
-    MyServer->getAdvertising()->start();
+    BLEServer *MyServer = BLEDevice::createServer();  //Create the BLE Server
+    MyServer->setCallbacks(new ServerCallbacks());  // Set the function that handles server callbacks
+    BLEService *customService = MyServer->createService(serviceID); // Create the BLE Service
+    customService->addCharacteristic(&customCharacteristic);  // Create a BLE Characteristic
+    customCharacteristic.setCallbacks(new MyCharacteristicCallbacks());
+    MyServer->getAdvertising()->addServiceUUID(serviceID);  // Configure Advertising
+    customService->start(); // Start the service
+    MyServer->getAdvertising()->start();  // Start the server/advertising
 }
 
 
