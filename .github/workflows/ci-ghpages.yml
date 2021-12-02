@@ -13,7 +13,7 @@ jobs:
           cache: 'npm'
           cache-dependency-path: put-rocket-frontend/package-lock.json
       - run: cd put-rocket-frontend && npm install
-      - run: cd put-rocket-frontend && npm build
+      - run: cd put-rocket-frontend && npm run build
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
