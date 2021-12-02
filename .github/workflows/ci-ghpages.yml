@@ -1,0 +1,16 @@
+name: Build Vue
+on: [push]
+jobs:
+  build_vue:
+    runs-on: ubuntu-latest
+    name: Build Vue
+    steps:
+      - run: cd put-rocket-frontend
+
+      - uses: actions/checkout@v2
+      - id: Build-Vue
+        uses: xRealNeon/VuePagesAction@1.0.1
+        with:
+          username: 'SuddenlyPineapple'
+          reponame: 'put-V2-rocket'
+          token: ${{ secrets.GITHUB_TOKEN }} # Leave this line unchanged
