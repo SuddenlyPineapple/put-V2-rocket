@@ -6,9 +6,9 @@ jobs:
     name: Build Vue
     steps:
       - uses: actions/checkout@v2
-      - run: pwd
-      - run: ls -lai
       - run: cd put-rocket-frontend
+      - run: ls -lai
+      - run: npm ci
 
       - id: Build-Vue
         uses: xRealNeon/VuePagesAction@1.0.1

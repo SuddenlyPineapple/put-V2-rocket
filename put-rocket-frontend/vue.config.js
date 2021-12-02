@@ -1,4 +1,4 @@
 module.exports = {
   transpileDependencies: ["vuetify"],
-  publicPath: "/put-V2-rocket/",
+  publicPath: process.env.NODE_ENV === "production" ? "/put-V2-rocket/" : "/",
 };
