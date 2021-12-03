@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include <BLEDevice.h>
-#include <BLEUtils.h>
 #include <BLEServer.h>
 #include <MPU9250_asukiaaa.h>
 #include <Adafruit_BMP280.h>
@@ -15,6 +14,7 @@
 // I2C DEFINE
 #define SDA_PIN 23
 #define SCL_PIN 19
+
 // SPI DEFINE SD CARD
 #define MISO_PIN 27
 #define MOSI_PIN 25
@@ -29,6 +29,7 @@ BLECharacteristic customCharacteristic(
         BLECharacteristic::PROPERTY_WRITE |
         BLECharacteristic::PROPERTY_NOTIFY
 );
+
 bool deviceConnected = false;
 bool sdCardConnected = false;
 //SDCARD
