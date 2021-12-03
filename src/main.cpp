@@ -42,7 +42,8 @@ float aX, aY, aZ, aSqrt, gX, gY, gZ, mDirection, mX, mY, mZ, temp, press, latt, 
 Adafruit_BMP280 bmp;
 
 char value[1024] = "Default";
-int firstPress = 0;
+float firstPress = 0;
+
 //Sending Data
 class ServerCallbacks : public BLEServerCallbacks {
     void onConnect(BLEServer *MyServer) {
@@ -120,17 +121,18 @@ void setup() {
     }
     Serial.println("initialization done.");
     sdCardConnected = true;
-        deleteFile(SD, "/data.txt");
-        // open a new file and immediately close it:
-        File file = SD.open("/data.txt");
-        if (!file) {
-            Serial.println("File doens't exist");
-            Serial.println("Creating file...");
-            writeFile(SD, "/data.txt", "Time, Temperature, Pressure, height, aX, aY, aZ, aSqrt, gX, gY, gZ, battery percentage\r\n");
-        } else {
-            Serial.println("File already exists");
-        }
-        file.close();
+    deleteFile(SD, "/data.txt");
+    // open a new file and immediately close it:
+    File file = SD.open("/data.txt");
+    if (!file) {
+        Serial.println("File doens't exist");
+        Serial.println("Creating file...");
+        writeFile(SD, "/data.txt",
+                  "Time, Temperature, Pressure, height, aX, aY, aZ, aSqrt, gX, gY, gZ, battery percentage\r\n");
+    } else {
+        Serial.println("File already exists");
+    }
+    file.close();
 
     // MPU9250_asukiaaa RUN
     mySensor.beginAccel();
@@ -159,7 +161,7 @@ void setup() {
 }
 
 void loop() {
-    float timestamp = millis()/1000;
+    float timestamp = millis() / 1000;
     batt = battery.getBatteryChargeLevel(true);
     if (mySensor.accelUpdate() == 0) {
         aX = mySensor.accelX();
@@ -200,8 +202,10 @@ void loop() {
 
     if (sdCardConnected) {
         String message =
-               String(timestamp) + " , " + String(temp) + " , " + String(press) + " , " + String(latt) + " , " + String(aX) + " , " + String(aY) +
-                " , " + String(aZ) + " , " + String(aSqrt) + " , " + String(gX) + " , " + String(gY) + " , " + String(gZ) + " , " + String(batt);
+                String(timestamp) + " , " + String(temp) + " , " + String(press) + " , " + String(latt) + " , " +
+                String(aX) + " , " + String(aY) +
+                " , " + String(aZ) + " , " + String(aSqrt) + " , " + String(gX) + " , " + String(gY) + " , " +
+                String(gZ) + " , " + String(batt);
         myFile = SD.open("/data.txt", FILE_APPEND);
         if (!myFile) {
             Serial.println("Failed to open file for appending");
