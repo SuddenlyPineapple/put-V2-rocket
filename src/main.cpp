@@ -41,9 +41,8 @@ float aX, aY, aZ, aSqrt, gX, gY, gZ, mDirection, mX, mY, mZ, temp, press, latt, 
 //I2C device found at address 0x76 - bmp280
 Adafruit_BMP280 bmp;
 
-//Build-in Hall sensor
 char value[1024] = "Default";
-
+int firstPress = 0;
 //Sending Data
 class ServerCallbacks : public BLEServerCallbacks {
     void onConnect(BLEServer *MyServer) {
@@ -127,7 +126,7 @@ void setup() {
         if (!file) {
             Serial.println("File doens't exist");
             Serial.println("Creating file...");
-            writeFile(SD, "/data.txt", "Temperature, Pressure, height, aX, aY, aZ, aSqrt, gX, gY, gZ, battery percentage\r\n");
+            writeFile(SD, "/data.txt", "Time, Temperature, Pressure, height, aX, aY, aZ, aSqrt, gX, gY, gZ, battery percentage\r\n");
         } else {
             Serial.println("File already exists");
         }
@@ -144,6 +143,7 @@ void setup() {
                     Adafruit_BMP280::SAMPLING_X16,
                     Adafruit_BMP280::FILTER_X16,
                     Adafruit_BMP280::STANDBY_MS_500);
+    firstPress = bmp.readPressure() / 100;
 
     // BLE CONFIGURATION
     /* Create the BLE Server */
@@ -159,6 +159,7 @@ void setup() {
 }
 
 void loop() {
+    float timestamp = millis()/1000;
     batt = battery.getBatteryChargeLevel(true);
     if (mySensor.accelUpdate() == 0) {
         aX = mySensor.accelX();
@@ -180,7 +181,7 @@ void loop() {
     if (bmp.begin() == 1) {
         temp = bmp.readTemperature();
         press = bmp.readPressure() / 100;
-        latt = bmp.readAltitude(998); //<-- Put here your Sea Level Pressure (hPa)
+        latt = bmp.readAltitude(firstPress); //<-- Put here your Sea Level Pressure (hPa)
 
     } else {
         Serial.println("Cannot read BMP280 values");
@@ -190,8 +191,8 @@ void loop() {
     if (deviceConnected) {
         char s[1024];
         snprintf(s, sizeof(s),
-                 "{\"temp\": %f, \"pressure\": %f, \"altitude\": %f, \"aX\": %f, \"aY\": %f, \"aZ\": %f, \"aSqrt\": %f, \"gX\": %f, \"gY\": %f, \"gZ\": %f, \"battery\": %f}",
-                 temp, press, latt, aX, aY, aZ, aSqrt, gX, gY, gZ, batt);
+                 "{\"time\": %f, \"temp\": %f, \"pressure\": %f, \"altitude\": %f, \"aX\": %f, \"aY\": %f, \"aZ\": %f, \"aSqrt\": %f, \"gX\": %f, \"gY\": %f, \"gZ\": %f, \"battery\": %f}",
+                 timestamp, temp, press, latt, aX, aY, aZ, aSqrt, gX, gY, gZ, batt);
         customCharacteristic.setValue(s);
         customCharacteristic.notify();
         delay(1000);
@@ -199,7 +200,7 @@ void loop() {
 
     if (sdCardConnected) {
         String message =
-                String(temp) + " , " + String(press) + " , " + String(latt) + " , " + String(aX) + " , " + String(aY) +
+               String(timestamp) + " , " + String(temp) + " , " + String(press) + " , " + String(latt) + " , " + String(aX) + " , " + String(aY) +
                 " , " + String(aZ) + " , " + String(aSqrt) + " , " + String(gX) + " , " + String(gY) + " , " + String(gZ) + " , " + String(batt);
         myFile = SD.open("/data.txt", FILE_APPEND);
         if (!myFile) {
