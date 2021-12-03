@@ -5,16 +5,21 @@
 #include <MPU9250_asukiaaa.h>
 #include <Adafruit_BMP280.h>
 #include <SPI.h>
-//
-// TODO ADDING CHECKING BATTERY STATUS
-// https://www.pangodream.es/esp32-getting-battery-charging-level
+#include <SD.h>
+#include <FS.h>
+#include <Battery18650Stats.h>
+
+// Battery DEFINE
+#define ADC_PIN 36
 
 // I2C DEFINE
 #define SDA_PIN 23
 #define SCL_PIN 19
-// SPI DEFINE
+// SPI DEFINE SD CARD
 #define MISO_PIN 27
 #define MOSI_PIN 25
+#define CS_PIN 5
+#define SCK_PIN 18
 
 //BLE DEFINE
 #define serviceID BLEUUID("4fafc201-1fb5-459e-8fcc-c5c9c331914b")
@@ -25,16 +30,18 @@ BLECharacteristic customCharacteristic(
         BLECharacteristic::PROPERTY_NOTIFY
 );
 bool deviceConnected = false;
-
+bool sdCardConnected = false;
+//SDCARD
+File myFile;
+//BATTERY
+Battery18650Stats battery(ADC_PIN);
 //I2C device found at address 0x68 - mpu9250
 MPU9250_asukiaaa mySensor;
-float aX, aY, aZ, aSqrt, gX, gY, gZ, mDirection, mX, mY, mZ, temp, press, latt;
-
+float aX, aY, aZ, aSqrt, gX, gY, gZ, mDirection, mX, mY, mZ, temp, press, latt, batt;
 //I2C device found at address 0x76 - bmp280
 Adafruit_BMP280 bmp;
 
 //Build-in Hall sensor
-//int hall = 0;
 char value[1024] = "Default";
 
 //Sending Data
@@ -67,6 +74,33 @@ class MyCharacteristicCallbacks : public BLECharacteristicCallbacks {
     }
 };
 
+//Write to the SD card
+void writeFile(fs::FS &fs, const char *path, const char *message) {
+    Serial.printf("Writing file: %s\n", path);
+
+    File file = fs.open(path, FILE_WRITE);
+    if (!file) {
+        Serial.println("Failed to open file for writing");
+        return;
+    }
+    if (file.print(message)) {
+        Serial.println("File written");
+    } else {
+        Serial.println("Write failed");
+    }
+    file.close();
+}
+
+//Delete files from SD card
+void deleteFile(fs::FS &fs, const char *path) {
+    Serial.printf("Deleting file: %s\n", path);
+    if (fs.remove(path)) {
+        Serial.println("File deleted");
+    } else {
+        Serial.println("Delete failed");
+    }
+}
+
 void setup() {
     //USE PIN 22 as GND
     pinMode(22, OUTPUT);
@@ -79,8 +113,25 @@ void setup() {
     Wire.begin(SDA_PIN, SCL_PIN);
     mySensor.setWire(&Wire);
 
-    //SPI RUN
-    SPI.begin(18, MISO_PIN, MOSI_PIN, 34);
+    //SPI RUN SD CARD
+    SPI.begin(SCK_PIN, MISO_PIN, MOSI_PIN, CS_PIN);
+    if (!SD.begin(CS_PIN)) {
+        Serial.println("initialization failed!");
+        sdCardConnected = false;
+    }
+    Serial.println("initialization done.");
+    sdCardConnected = true;
+        deleteFile(SD, "/data.txt");
+        // open a new file and immediately close it:
+        File file = SD.open("/data.txt");
+        if (!file) {
+            Serial.println("File doens't exist");
+            Serial.println("Creating file...");
+            writeFile(SD, "/data.txt", "Temperature, Pressure, height, aX, aY, aZ, aSqrt, gX, gY, gZ, battery percentage\r\n");
+        } else {
+            Serial.println("File already exists");
+        }
+        file.close();
 
     // MPU9250_asukiaaa RUN
     mySensor.beginAccel();
@@ -107,57 +158,60 @@ void setup() {
     MyServer->getAdvertising()->start();  // Start the server/advertising
 }
 
-
 void loop() {
+    batt = battery.getBatteryChargeLevel(true);
     if (mySensor.accelUpdate() == 0) {
         aX = mySensor.accelX();
         aY = mySensor.accelY();
         aZ = mySensor.accelZ();
         aSqrt = mySensor.accelSqrt();
-
-//        Serial.println("accelX: " + String(aX));
-//        Serial.println("accelY: " + String(aY));
-//        Serial.println("accelZ: " + String(aZ));
-//        Serial.println("accelSqrt: " + String(aSqrt));
     } else {
-//        Serial.println("Cannod read accel values");
+        Serial.println("Cannod read accel values");
     }
 
     if (mySensor.gyroUpdate() == 0) {
         gX = mySensor.gyroX();
         gY = mySensor.gyroY();
         gZ = mySensor.gyroZ();
-
-//        Serial.println("gyroX: " + String(gX));
-//        Serial.println("gyroY: " + String(gY));
-//        Serial.println("gyroZ: " + String(gZ));
     } else {
-//        Serial.println("Cannot read gyro values");
+        Serial.println("Cannot read gyro values");
     }
 
     if (bmp.begin() == 1) {
         temp = bmp.readTemperature();
         press = bmp.readPressure() / 100;
         latt = bmp.readAltitude(998); //<-- Put here your Sea Level Pressure (hPa)
-//        Serial.println("Temperature: " + String(temp) + " *C");
-//        Serial.println("Pressure: " + String(press) + " hPa");
-//        Serial.println("Approx altitude: " + String(latt) + " m");
 
     } else {
-//        Serial.println("Cannot read BMP280 values");
+        Serial.println("Cannot read BMP280 values");
     }
-//    Take data form Hall chip sensor
-//    hall = hallRead();
-//    Serial.println(hall);
-
     //SENDING DATA VIA BLE
+
     if (deviceConnected) {
         char s[1024];
         snprintf(s, sizeof(s),
-                 "{\"temp\": %f, \"pressure\": %f, \"altitude\": %f, \"aX\": %f, \"aY\": %f, \"aZ\": %f, \"aSqrt\": %f, \"gX\": %f, \"gY\": %f, \"gZ\": %f}",
-                 temp, press, latt, aX, aY, aZ, aSqrt, gX, gY, gZ);
+                 "{\"temp\": %f, \"pressure\": %f, \"altitude\": %f, \"aX\": %f, \"aY\": %f, \"aZ\": %f, \"aSqrt\": %f, \"gX\": %f, \"gY\": %f, \"gZ\": %f, \"battery\": %f}",
+                 temp, press, latt, aX, aY, aZ, aSqrt, gX, gY, gZ, batt);
         customCharacteristic.setValue(s);
         customCharacteristic.notify();
+        delay(1000);
     }
-    delay(2000);
+
+    if (sdCardConnected) {
+        String message =
+                String(temp) + " , " + String(press) + " , " + String(latt) + " , " + String(aX) + " , " + String(aY) +
+                " , " + String(aZ) + " , " + String(aSqrt) + " , " + String(gX) + " , " + String(gY) + " , " + String(gZ) + " , " + String(batt);
+        myFile = SD.open("/data.txt", FILE_APPEND);
+        if (!myFile) {
+            Serial.println("Failed to open file for appending");
+            return;
+        }
+        if (myFile.println(message)) {
+            Serial.println("Data appended");
+        } else {
+            Serial.println("Append failed");
+        }
+        myFile.close();
+        delay(1000);
+    }
 }
