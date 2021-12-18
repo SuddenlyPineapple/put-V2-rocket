@@ -8,6 +8,8 @@
 #include <SD.h>
 #include <FS.h>
 #include <Battery18650Stats.h>
+#include <TinyGPS++.h>
+#include <SoftwareSerial.h>
 
 // Battery DEFINE
 #define ADC_PIN 36
@@ -33,6 +35,14 @@
 #define DEFAULT_CONVERSION_FACTOR 1.832
 #endif
 
+// GPS DEFINE
+static const int RXPin = 13, TXPin = 12;
+static const uint32_t GPSBaud = 9600;
+TinyGPSPlus gps;
+SoftwareSerial ss(RXPin, TXPin);
+double GPSLat, GPSLng, GPSAlt, GPSSpeed, GPSCourse;
+uint32_t Date, Time, GPSVal;
+char GPSErr[] = "Not Connected";
 
 //BLE DEFINE
 #define serviceID BLEUUID("4fafc201-1fb5-459e-8fcc-c5c9c331914b")
@@ -57,6 +67,7 @@ Adafruit_BMP280 bmp;
 
 char value[1024] = "Default";
 float firstPress = 0;
+
 
 //Sending Data
 class ServerCallbacks : public BLEServerCallbacks {
@@ -114,6 +125,63 @@ void deleteFile(fs::FS &fs, const char *path) {
         Serial.println("Delete failed");
     }
 }
+void displayInfo()
+{
+    GPSLat = gps.location.lat(), GPSLng = gps.location.lng(), GPSAlt = gps.altitude.meters(), GPSSpeed = gps.speed.mps(), GPSCourse = gps.course.deg();
+    Date = gps.date.value(),Time = gps.time.value(), GPSVal= gps.satellites.value();
+
+    Serial.print(F("No. connected sat: "));
+    Serial.print(GPSVal);
+    Serial.print(F(" Location: "));
+    if (gps.location.isValid()){
+        Serial.print(GPSLat, 6);
+        Serial.print(F(","));
+        Serial.print(GPSLng, 6);
+    }
+    else{
+        Serial.print(GPSErr);
+    }
+
+    Serial.print(F("  Altitude: "));
+    if (gps.altitude.isValid()){
+        Serial.print(GPSAlt);
+    }
+    else{
+        Serial.print(GPSErr);
+    }
+    Serial.print(F("  Course: "));
+    if (gps.course.isValid()){
+        Serial.print(GPSCourse);
+    }
+    else{
+        Serial.print(GPSErr);
+    }
+    Serial.print(F("  Speed: "));
+    if (gps.speed.isValid()){
+        Serial.print(GPSSpeed);
+    }
+    else{
+        Serial.print(GPSErr);
+    }
+    Serial.print(F("  Date: "));
+    if (gps.date.isValid())
+    {
+        Serial.print(Date);
+    }
+    else
+    {
+        Serial.print(GPSErr);
+    }
+
+    Serial.print(F(" Time: "));
+    if (gps.time.isValid()){
+       Serial.print(Time);
+    }
+    else{
+        Serial.print(GPSErr);
+    }
+    Serial.println();
+}
 
 void setup() {
     //USE PIN 22 as GND
@@ -160,6 +228,10 @@ void setup() {
                     Adafruit_BMP280::FILTER_X16,
                     Adafruit_BMP280::STANDBY_MS_500);
     firstPress = bmp.readPressure() / 100;
+
+
+    //GPS RUN
+    ss.begin(GPSBaud);
 
     // BLE CONFIGURATION
     /* Create the BLE Server */
@@ -235,5 +307,14 @@ void loop() {
         }
         myFile.close();
         delay(1000);
+    }
+
+    while (ss.available() > 0)
+        if (gps.encode(ss.read()))
+            displayInfo();
+
+    if (millis() > 5000 && gps.charsProcessed() < 10)
+    {
+        Serial.println("No GPS detected: check wiring.");
     }
 }
