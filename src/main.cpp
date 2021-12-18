@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <BLEDevice.h>
 #include <BLEServer.h>
+#include <BLE2902.h>
 #include <MPU9250_asukiaaa.h>
 #include <Adafruit_BMP280.h>
 #include <SPI.h>
@@ -20,6 +21,17 @@
 #define MOSI_PIN 25
 #define CS_PIN 5
 #define SCK_PIN 18
+
+// BATTERY OVERRIDING and BMP280
+#ifdef DEFAULT_PIN
+#undef DEFAULT_PIN
+#define DEFAULT_PIN 36
+#endif
+
+#ifdef DEFAULT_CONVERSION_FACTOR
+#undef DEFAULT_CONVERSION_FACTOR
+#define DEFAULT_CONVERSION_FACTOR 1.832
+#endif
 
 //BLE DEFINE
 #define serviceID BLEUUID("4fafc201-1fb5-459e-8fcc-c5c9c331914b")
@@ -140,7 +152,7 @@ void setup() {
     mySensor.beginGyro();
 
     // BMP280 RUN
-    bmp.begin();
+    bmp.begin(BMP280_ADDRESS_ALT);
     bmp.setSampling(Adafruit_BMP280::MODE_NORMAL,
                     Adafruit_BMP280::SAMPLING_X2,
                     Adafruit_BMP280::SAMPLING_X16,
@@ -155,6 +167,9 @@ void setup() {
     MyServer->setCallbacks(new ServerCallbacks());  // Set the function that handles server callbacks
     BLEService *customService = MyServer->createService(serviceID); // Create the BLE Service
     customService->addCharacteristic(&customCharacteristic);  // Create a BLE Characteristic
+    BLE2902 *basicDescriptor = new BLE2902();
+    basicDescriptor->setNotifications(true);
+    customCharacteristic.addDescriptor(basicDescriptor);
     customCharacteristic.setCallbacks(new MyCharacteristicCallbacks());
     MyServer->getAdvertising()->addServiceUUID(serviceID);  // Configure Advertising
     customService->start(); // Start the service
