@@ -143,7 +143,7 @@ void displayInfo()
     }
 
     Serial.print(F("  Altitude: "));
-    if (gps.altitude.isValid()){
+    if (gps.altitude.isUpdated()){
         Serial.print(GPSAlt);
     }
     else{
