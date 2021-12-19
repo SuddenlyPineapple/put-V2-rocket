@@ -9,7 +9,7 @@
 #include <FS.h>
 #include <Battery18650Stats.h>
 #include <TinyGPS++.h>
-#include <SoftwareSerial.h>
+#include <HardwareSerial.h>
 
 // Battery DEFINE
 #define ADC_PIN 36
@@ -36,10 +36,8 @@
 #endif
 
 // GPS DEFINE
-static const int RXPin = 13, TXPin = 12;
-static const uint32_t GPSBaud = 9600;
 TinyGPSPlus gps;
-SoftwareSerial ss(RXPin, TXPin);
+HardwareSerial gps_serial(1);
 double GPSLat, GPSLng, GPSAlt, GPSSpeed, GPSCourse;
 uint32_t Date, Time, GPSSatCount;
 char GPSErr[] = "Not Connected";
@@ -130,7 +128,7 @@ void displayInfo()
     GPSLat = gps.location.lat(), GPSLng = gps.location.lng(), GPSAlt = gps.altitude.meters(), GPSSpeed = gps.speed.mps(), GPSCourse = gps.course.deg();
     Date = gps.date.value(),Time = gps.time.value(), GPSSatCount = gps.satellites.value();
 
-    Serial.print(F("No. connected sat: "));
+    Serial.print(F("GPS Sat Count: "));
     Serial.print(GPSSatCount);
     Serial.print(F(" Location: "));
     if (gps.location.isValid()){
@@ -143,7 +141,7 @@ void displayInfo()
     }
 
     Serial.print(F("  Altitude: "));
-    if (gps.altitude.isUpdated()){
+    if (gps.altitude.isValid()){
         Serial.print(GPSAlt);
     }
     else{
@@ -188,8 +186,10 @@ void setup() {
     pinMode(22, OUTPUT);
     digitalWrite(22, LOW);
 
-    //Serial RUN for TESTING
+    //Serial and GPS
     Serial.begin(115200);
+    gps_serial.begin(9600, SERIAL_8N1, 13,12);
+
 
     //I2C RUN
     Wire.begin(SDA_PIN, SCL_PIN);
@@ -210,7 +210,7 @@ void setup() {
         Serial.println("File doens't exist");
         Serial.println("Creating file...");
         writeFile(SD, "/data.txt",
-                  "Time, Temperature, Pressure, height, aX, aY, aZ, aSqrt, gX, gY, gZ, battery percentage,GPSValue, GPSLng, GPSLat, GPSAlt, GPSCourse, GPSSpeed, GPSDate, GPSTime\r\n");
+                  "Time, Temperature, Pressure, height, aX, aY, aZ, aSqrt, gX, gY, gZ, battery percentage,GPSValue, GPSLat, GPSLng, GPSAlt, GPSCourse, GPSSpeed, GPSDate, GPSTime\r\n");
     } else {
         Serial.println("File already exists");
     }
@@ -228,11 +228,6 @@ void setup() {
                     Adafruit_BMP280::FILTER_X16,
                     Adafruit_BMP280::STANDBY_MS_500);
     firstPress = bmp.readPressure() / 100;
-
-
-    //GPS RUN
-    ss.begin(GPSBaud);
-
 
     // BLE CONFIGURATION
     /* Create the BLE Server */
@@ -283,8 +278,8 @@ void loop() {
     if (deviceConnected) {
         char s[1024];
         snprintf(s, sizeof(s),
-                 "{\"time\": %f, \"temp\": %f, \"pressure\": %f, \"altitude\": %f, \"aX\": %f, \"aY\": %f, \"aZ\": %f, \"aSqrt\": %f, \"gX\": %f, \"gY\": %f, \"gZ\": %f, \"battery\": %f, \"GPSSatCount\": %u, \"GPSLng\": %f, \"GPSLat\": %f, \"GPSAlt\": %f, \"GPSCourse\": %f, \"GPSSpeed\": %f, \"GPSDate\": %u, \"GPSTime\": %u}",
-                 timestamp, temp, press, latt, aX, aY, aZ, aSqrt, gX, gY, gZ, batt, GPSSatCount, GPSLng, GPSLat, GPSAlt, GPSCourse, GPSSpeed, Date, Time);
+                 "{\"time\": %f, \"temp\": %f, \"pressure\": %f, \"altitude\": %f, \"aX\": %f, \"aY\": %f, \"aZ\": %f, \"aSqrt\": %f, \"gX\": %f, \"gY\": %f, \"gZ\": %f, \"battery\": %f, \"GPSSatCount\": %u, \"GPSLat\": %f, \"GPSLng\": %f, \"GPSAlt\": %f, \"GPSCourse\": %f, \"GPSSpeed\": %f, \"GPSDate\": %u, \"GPSTime\": %u}",
+                 timestamp, temp, press, latt, aX, aY, aZ, aSqrt, gX, gY, gZ, batt, GPSSatCount, GPSLat, GPSLng, GPSAlt, GPSCourse, GPSSpeed, Date, Time);
         customCharacteristic.setValue(s);
         customCharacteristic.notify();
         delay(1000);
@@ -295,14 +290,14 @@ void loop() {
                 String(timestamp) + " , " + String(temp) + " , " + String(press) + " , " + String(latt) + " , " +
                 String(aX) + " , " + String(aY) +
                 " , " + String(aZ) + " , " + String(aSqrt) + " , " + String(gX) + " , " + String(gY) + " , " +
-                String(gZ) + " , " + String(batt)  + " , " + String(GPSSatCount) + " , " + String(GPSLng) + " , " + String(GPSLat) + " , " + String(GPSAlt) + " , " + String(GPSCourse) + " , " + String(GPSSpeed) + " , " + String(Date) + " , " + String(Time);
+                String(gZ) + " , " + String(batt)  + " , " + String(GPSSatCount) + " , " + String(GPSLat) + " , " + String(GPSLng) + " , " + String(GPSAlt) + " , " + String(GPSCourse) + " , " + String(GPSSpeed) + " , " + String(Date) + " , " + String(Time);
         myFile = SD.open("/data.txt", FILE_APPEND);
         if (!myFile) {
             Serial.println("Failed to open file for appending");
             return;
         }
         if (myFile.println(message)) {
-            Serial.println("Data appended");
+           // Serial.println("Data appended");
         } else {
             Serial.println("Append failed");
         }
@@ -310,12 +305,12 @@ void loop() {
         delay(1000);
     }
 
-    while (ss.available() > 0)
-        if (gps.encode(ss.read()))
+    while (gps_serial.available() > 0)
+        if (gps.encode(gps_serial.read()))
             displayInfo();
 
     if (millis() > 5000 && gps.charsProcessed() < 10)
     {
-        Serial.println("No GPS detected: check wiring.");
+        Serial.println(F("No GPS detected: check wiring."));
     }
 }
