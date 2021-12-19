@@ -290,7 +290,7 @@ void loop() {
                 String(timestamp) + " , " + String(temp) + " , " + String(press) + " , " + String(latt) + " , " +
                 String(aX) + " , " + String(aY) +
                 " , " + String(aZ) + " , " + String(aSqrt) + " , " + String(gX) + " , " + String(gY) + " , " +
-                String(gZ) + " , " + String(batt)  + " , " + String(GPSSatCount) + " , " + String(GPSLat) + " , " + String(GPSLng) + " , " + String(GPSAlt) + " , " + String(GPSCourse) + " , " + String(GPSSpeed) + " , " + String(Date) + " , " + String(Time);
+                String(gZ) + " , " + String(batt)  + " , " + String(GPSSatCount) + " , " + String(GPSLat,6) + " , " + String(GPSLng,6) + " , " + String(GPSAlt) + " , " + String(GPSCourse) + " , " + String(GPSSpeed) + " , " + String(Date) + " , " + String(Time);
         myFile = SD.open("/data.txt", FILE_APPEND);
         if (!myFile) {
             Serial.println("Failed to open file for appending");
