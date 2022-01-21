@@ -119,7 +119,8 @@ void deleteFile(fs::FS &fs, const char *path) {
     Serial.printf("Deleting file: %s\n", path);
     if (fs.remove(path)) {
         Serial.println("File deleted");
-    } else {
+    }
+    else {
         Serial.println("Delete failed");
     }
 }
@@ -188,7 +189,7 @@ void setup() {
 
     //Serial and GPS
     Serial.begin(115200);
-    gps_serial.begin(9600, SERIAL_8N1, 13,12);
+    gps_serial.begin(9600, SERIAL_8N1, 13, 12);
 
 
     //I2C RUN
@@ -200,9 +201,10 @@ void setup() {
     if (!SD.begin(CS_PIN)) {
         Serial.println("initialization failed!");
         sdCardConnected = false;
+    } else {
+        Serial.println("initialization done.");
+        sdCardConnected = true;
     }
-    Serial.println("initialization done.");
-    sdCardConnected = true;
     deleteFile(SD, "/data.txt");
     // open a new file and immediately close it:
     File file = SD.open("/data.txt");
