@@ -285,7 +285,7 @@ void loop() {
     if (deviceConnected) {
         char s[1024];
         snprintf(s, sizeof(s),
-                 "{\"time\": %f, \"temp\": %f, \"pressure\": %f, \"altitude\": %f, \"aX\": %f, \"aY\": %f, \"aZ\": %f, \"aSqrt\": %f, \"gX\": %f, \"gY\": %f, \"gZ\": %f, \"battery\": %f, \"GPSSatCount\": %u, \"GPSLat\": %f, \"GPSLng\": %f, \"GPSAlt\": %f, \"GPSCourse\": %f, \"GPSSpeed\": %f, \"GPSDate\": %s, \"GPSTime\": %s}",
+                 "{\"time\": %f, \"temp\": %f, \"pressure\": %f, \"altitude\": %f, \"aX\": %f, \"aY\": %f, \"aZ\": %f, \"aSqrt\": %f, \"gX\": %f, \"gY\": %f, \"gZ\": %f, \"battery\": %f, \"GPSSatCount\": %u, \"GPSLat\": %f, \"GPSLng\": %f, \"GPSAlt\": %f, \"GPSCourse\": %f, \"GPSSpeed\": %f, \"GPSDate\": \"%s\", \"GPSTime\": \"%s\"}",
                  timestamp, temp, press, latt, aX, aY, aZ, aSqrt, gX, gY, gZ, batt, GPSSatCount, GPSLat, GPSLng, GPSAlt, GPSCourse, GPSSpeed, DateString, TimeString );
         customCharacteristic.setValue(s);
         customCharacteristic.notify();
