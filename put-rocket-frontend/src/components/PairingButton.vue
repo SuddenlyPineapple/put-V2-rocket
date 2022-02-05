@@ -67,12 +67,6 @@
         />
       </v-col>
       <v-col cols="12" lg="4" md="6" sm="12" class="mb-4">
-        <h3>GPS Satellites Count:</h3>
-        <h1>{{ GPSSatCountNow }}</h1>
-        <h3>GPS Date:</h3>
-        <h1>{{ GPSDate.toString() }}</h1>
-      </v-col>
-      <v-col cols="12" lg="4" md="6" sm="12" class="mb-4">
         <IndexChart
           name="GPS Speed"
           :xData="GPSSpeed"
@@ -81,15 +75,28 @@
           yLabel="Time"
         />
       </v-col>
+      <v-col cols="12" lg="4" md="4" sm="12" class="mb-4">
+        <h3>GPS Satellites Count:</h3>
+        <h1>{{ GPSSatCountNow }}</h1>
+        <h3>GPS Date:</h3>
+        <h1>{{ GPSDate.toString() }}</h1>
+        <h3>GPS Time:</h3>
+        <h1>{{ GPSTime.toString() }}</h1>
+      </v-col>
+      <v-col cols="12" lg="8" md="8" sm="12" class="mb-4">
+        <MapDrawer :lat="52.332121" :lng="16.756599" :paths="GPSPaths" />
+      </v-col>
     </v-row>
   </v-container>
 </template>
 
 <script>
 import IndexChart from "./IndexChart";
+import MapDrawer from "./MapDrawer";
+
 export default {
   name: "PairingButton",
-  components: { IndexChart },
+  components: { IndexChart, MapDrawer },
   data: () => ({
     paired: false,
     bleData: [],
@@ -123,6 +130,25 @@ export default {
         ? this.bleData[this.bleData.length - 1].GPSDate
         : 0;
     },
+    GPSTime: function () {
+      return this.bleData.length > 0
+        ? this.bleData[this.bleData.length - 1].GPSTime
+        : 0;
+    },
+    GPSPaths: function () {
+      return this.bleData.length
+        ? this.bleData
+            .filter((item) => {
+              return item.GPSLat !== 0 && item.GPSLng !== 0;
+            })
+            .map((item) => {
+              return {
+                lat: item.GPSLat,
+                lng: item.GPSLng,
+              };
+            })
+        : [];
+    },
   },
   methods: {
     connectToDevice() {
@@ -135,23 +161,22 @@ export default {
           ],
         })
         .then((device) => {
-          console.log('"' + device.name + '" bluetooth device selected');
-
+          //console.log('"' + device.name + '" bluetooth device selected');
           device.gatt
             .connect()
             .then((server) =>
               server.getPrimaryService("4fafc201-1fb5-459e-8fcc-c5c9c331914b")
             )
             .then((service) => {
-              console.log("Connected to service");
+              //console.log("Connected to service");
               this.paired = true;
               return service.getCharacteristic(
                 "beb5483e-36e1-4688-b7f5-ea07361b26a8"
               );
             })
             .then(async (characteristic) => {
-              console.log("Connected to characteristic");
-              console.log(characteristic.properties);
+              //console.log("Connected to characteristic");
+              //console.log(characteristic.properties);
               characteristic.startNotifications().then(() => {
                 characteristic.addEventListener(
                   "characteristicvaluechanged",
@@ -167,7 +192,7 @@ export default {
       const recivedData = JSON.parse(
         String.fromCharCode.apply(null, new Uint8Array(value))
       );
-      console.log("Received ", recivedData);
+      //console.log("Received ", recivedData);
       this.bleData.push(recivedData);
       this.scrollToBottom();
     },

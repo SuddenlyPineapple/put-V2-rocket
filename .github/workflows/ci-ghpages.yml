@@ -12,7 +12,16 @@ jobs:
           node-version: '16.3'
           cache: 'npm'
           cache-dependency-path: put-rocket-frontend/package-lock.json
+
       - run: cd put-rocket-frontend && npm install
+
+      - run: |
+          cd put-rocket-frontend 
+          cd src
+          mkdir config 
+          cd config
+          echo 'export const config = {apiKey: "${{ secrets.MAPS_API_KEY }}",};' > index.js
+
       - run: cd put-rocket-frontend && npm run build
 
       - name: Deploy
